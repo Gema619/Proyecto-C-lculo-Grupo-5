@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Calculadora completa — Carga y Derivada (moderna)</title>
+  <style>
+:root {
+  --bg: #0a1128;
+  --card: #1f2937;
+  --accent: #fca311;
+  --muted: #9ca3af;
+  --text: #e0e1dd;
+  --shadow: rgba(0, 0, 0, 0.3);
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  margin: 0;
+  background: linear-gradient(180deg, var(--bg), #1a202e);
+  color: var(--text);
+  display: flex;
+  justify-content: center;
+  padding: 30px;
+}
+
+.wrap {
+  max-width: 1200px;
+  width: 100%;
+  background: var(--card);
+  border-radius: 20px;
+  box-shadow: 0 8px 30px var(--shadow);
+  padding: 30px;
+}
+
+/* Encabezado */
+header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.logo {
+  background: linear-gradient(135deg, #fca311, #e85d04);
+  width: 70px;
+  height: 70px;
+  border-radius: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 34px;
+  font-weight: bold;
+  color: #fff;
+  box-shadow: 0 4px 15px var(--shadow);
+}
+
+h1 {
+  font-size: 2rem;
+  margin: 0;
+}
+
+.small {
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+/* Grid principal: controles y visualización */
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 420px;
+  gap: 30px;
+}
+
+.card {
+  background: #2d3748;
+  border-radius: 15px;
+  padding: 20px;
+  box-shadow: 0 6px 20px var(--shadow);
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  box-shadow: 0 8px 25px var(--shadow);
+}
+
+label {
+  display: block;
+  margin-top: 15px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #cbd5e0;
+}
+
+input[type="text"],
+input[type="number"] {
+  width: 100%;
+  padding: 12px 15px;
+  margin-top: 8px;
+  border-radius: 12px;
+  border: 2px solid transparent;
+  background: #1f2937;
+  color: #e0e1dd;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 1rem;
+  transition: border 0.2s, box-shadow 0.2s;
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 10px var(--accent);
+  outline: none;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-top: 20px;
+}
+
+button {
+  flex: 1 1 auto;
+  min-width: 130px;
+  padding: 14px;
+  border-radius: 15px;
+  border: none;
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 4px 15px rgba(252, 163, 17, 0.4);
+  transition: background 0.3s, transform 0.2s;
+}
+
+button:hover {
+  background: #fca311;
+  transform: translateY(-2px);
+}
+
+button.ghost {
+  background: transparent;
+  border: 2px solid var(--muted);
+  color: var(--muted);
+}
+
+button.ghost:hover {
+  background: rgba(252, 163, 17, 0.1);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+canvas {
+  width: 100% !important;
+  height: auto;
+  border-radius: 20px;
+  box-shadow: 0 6px 20px var(--shadow);
+}
+
+.metrics {
+  display: flex;
+  gap: 20px;
+  margin-top: 22px;
+  justify-content: space-between;
+}
+
+.metric {
+  background: #2d3748;
+  padding: 16px;
+  border-radius: 12px;
+  text-align: center;
+  box-shadow: inset 0 0 8px rgba(252, 163, 17, 0.4);
+  flex: 1;
+}
+
+.metric .small {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #cbd5e0;
+}
+
+footer {
+  margin-top: 30px;
+  text-align: center;
+  font-size: 0.95rem;
+  color: var(--muted);
+}
+
+.status {
+  margin-top: 10px;
+  color: #ff4c4c;
+  font-weight: 700;
+  font-size: 0.95rem;
+  display: none;
+  user-select: none;
+}
+
+@media (max-width: 980px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+  .metrics {
+    flex-direction: column;
+  }
+}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">∂</div>
+    <div>
+      <h1>Calculadora completa — Carga del servidor y derivada</h1>
+      <div class="small">Genera ejemplos, ingresa R(t), suaviza derivada, detecta picos, exporta PNG/CSV — todo offline.</div>
+    </div>
+  </header>
+  <div class="grid">
+    <main class="card">
+      <h3>Entradas y controles</h3>
+      <label>Función R(t) (JavaScript). Ej: <code>200+40*Math.sin(t)</code></label>
+      <input id="funcR" type="text" placeholder="200+40*Math.sin(t)">
+      <label class="small">Derivada analítica R'(t) (opcional). Ej: <code>40*Math.cos(t)</code></label>
+      <input id="funcD" type="text" placeholder="40*Math.cos(t) (dejar vacío → derivada numérica)">
+      <div class="row">
+        <label class="small" style="margin:0">t desde</label>
+        <input id="t0" type="number" value="0" step="0.1" style="width:90px">
+        <label class="small" style="margin:0">hasta</label>
+        <input id="t1" type="number" value="60" step="0.1" style="width:90px">
+        <label class="small" style="margin:0">puntos</label>
+        <input id="points" type="number" value="300" step="1" style="width:70px">
+      </div>
+      <div class="row">
+        <button id="genExample">Generar ejemplo</button>
+        <button id="calcBtn">Calcular</button>
+        <button id="toggleSmooth" class="ghost">Suavizado: ON</button>
+        <button id="exportPng" class="ghost" disabled>Exportar PNG</button>
+        <button id="exportCsv" class="ghost" disabled>Descargar CSV</button>
+      </div>
+      <div style="margin-top:10px" class="small">
+        <strong>Instrucciones rápidas:</strong>
+        <ol>
+          <li>Genera el ejemplo o escribe tu R(t) y (opcional) R'(t).</li>
+          <li>Ajusta rango t y puntos.</li>
+          <li>Pulsa <strong>Calcular</strong>. Verás la gráfica, la derivada (dashed) y picos (líneas verticales).</li>
+          <li>Usa Exportar/Descargar para guardar resultados.</li>
+        </ol>
+      </div>
+      <div id="status" class="status"></div>
+    </main>
+    <aside class="card">
+      <h3>Visualización</h3>
+      <canvas id="canvasPlot" width="800" height="360"></canvas>
+      <div class="metrics">
+        <div class="metric"><div class="small">Máx carga</div><div id="maxLoad">-</div></div>
+        <div class="metric"><div class="small">Máx derivada</div><div id="maxDer">-</div></div>
+        <div class="metric"><div class="small">Picos</div><div id="peaksNum">-</div></div>
+      </div>
+      <div style="margin-top:10px" class="small">
+        <strong>Interpretación:</strong>
+        <p>Derivada positiva → subida; negativa → bajada. Líneas rojas marcan picos críticos detectados.</p>
+      </div>
+    </aside>
+  </div>
+  <footer>Proyecto — Uso de la Derivada en el Análisis de Carga de Servidores</footer>
+</div>
+<script>
+function linspace(a,b,n){
+  const out=[];
+  if(n<=1){ out.push(a); return out; }
+  const step=(b-a)/(n-1);
+  for(let i=0;i<n;i++) out.push(a + step*i);
+  return out;
+}
+function safeEval(expr, t){
+  try {
+    const func = new Function('t', 'Math', 'return ' + expr);
+    return func(t, Math);
+  } catch(e){
+    return NaN;
+  }
+}
+function derivativeNumeric(t,y){
+  const n=y.length;
+  if(n<2) return new Array(n).fill(0);
+  const dy=new Array(n).fill(0);
+  for(let i=1;i<n-1;i++){
+    const dt = t[i+1]-t[i-1];
+    dy[i] = (y[i+1]-y[i-1]) / dt;
+  }
+  dy[0] = (y[1]-y[0])/(t[1]-t[0]);
+  dy[n-1] = (y[n-1]-y[n-2])/(t[n-1]-t[n-2]);
+  return dy;
+}
+function smoothMA(arr, window){
+  if(window<=1) return arr.slice();
+  const half=Math.floor(window/2);
+  const out=new Array(arr.length).fill(0);
+  for(let i=0;i<arr.length;i++){
+    let sum=0,c=0;
+    for(let j=i-half;j<=i+half;j++){
+      if(j>=0 && j<arr.length){ sum += arr[j]; c++; }
+    }
+    out[i]=c? sum/c : 0;
+  }
+  return out;
+}
+function findPeaksIdx(arr,thr){
+  const out=[];
+  for(let i=1;i<arr.length-1;i++){
+    if(Math.abs(arr[i])>=thr && arr[i]>arr[i-1] && arr[i]>arr[i+1]){
+      out.push(i);
+    }
+  }
+  return out;
+}
+const canvas = document.getElementById('canvasPlot');
+const ctx = canvas.getContext('2d');
+const W = canvas.width;
+const H = canvas.height;
+const M = 44;
+function clear(){
+  ctx.fillStyle = '#071226';
+  ctx.fillRect(0,0,W,H);
+}
+function drawAxes(){
+  ctx.strokeStyle='rgba(255,255,255,0.08)';
+  ctx.lineWidth=1;
+  ctx.beginPath();
+  ctx.moveTo(M, H-M);
+  ctx.lineTo(W-M, H-M);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(M, M);
+  ctx.lineTo(M, H-M);
+  ctx.stroke();
+}
+function mapX(t,tmin,tmax){
+  return M + ((t - tmin)/(tmax - tmin || 1)) * (W - 2*M);
+}
+function mapY(v,vmin,vmax){
+  const pct = (v - vmin) / ((vmax - vmin) || 1);
+  return (H - M) - pct * (H - 2*M);
+}
+function drawLinePts(pts,color,width=2){
+  ctx.beginPath(); ctx.strokeStyle=color; ctx.lineWidth=width;
+  for(let i=0;i<pts.length;i++){
+    const p=pts[i];
+    if(i===0) ctx.moveTo(p.x,p.y); else ctx.lineTo(p.x,p.y);
+  }
+  ctx.stroke();
+}
+function drawDashedPts(pts,color,width=1.5){
+  ctx.setLineDash([6,4]);
+  drawLinePts(pts,color,width);
+  ctx.setLineDash([]);
+}
+function drawVLines(xs){
+  ctx.strokeStyle='rgba(255,99,132,0.6)';
+  ctx.lineWidth=1;
+  xs.forEach(x=>{
+    ctx.beginPath();
+    ctx.moveTo(x,M);
+    ctx.lineTo(x,H-M);
+    ctx.stroke();
+  });
+}
+let lastResult = null;
+let smoothingOn = true;
+const btnCalc = document.getElementById('calcBtn');
+const btnExportPng = document.getElementById('exportPng');
+const btnExportCsv = document.getElementById('exportCsv');
+document.getElementById('toggleSmooth').addEventListener('click', ()=>{
+  smoothingOn = !smoothingOn;
+  document.getElementById('toggleSmooth').innerText = 'Suavizado: ' + (smoothingOn? 'ON':'OFF');
+  if(lastResult) renderResult(lastResult);
+});
+document.getElementById('genExample').addEventListener('click', ()=>{
+  document.getElementById('funcR').value = '200+40*Math.sin(t)';
+  document.getElementById('funcD').value = '40*Math.cos(t)';
+  document.getElementById('t0').value = 0;
+  document.getElementById('t1').value = 60;
+  document.getElementById('points').value = 300;
+  document.getElementById('status').style.display='none';
+  btnExportPng.disabled = true;
+  btnExportCsv.disabled = true;
+});
+btnCalc.addEventListener('click', ()=>{
+  document.getElementById('status').style.display='none';
+  btnExportPng.disabled = true;
+  btnExportCsv.disabled = true;
+  const exprR = document.getElementById('funcR').value.trim();
+  const exprD = document.getElementById('funcD').value.trim();
+  const t0 = parseFloat(document.getElementById('t0').value);
+  const t1 = parseFloat(document.getElementById('t1').value);
+  const points = parseInt(document.getElementById('points').value) || 200;
+  if(!exprR){ showStatus('Escribe la función R(t)'); return; }
+  if(isNaN(t0) || isNaN(t1) || t1 <= t0){ showStatus('Intervalo t inválido'); return; }
+  if(points < 2){ showStatus('El número de puntos debe ser al menos 2'); return; }
+  const tArr = linspace(t0,t1,points);
+  const yArr = tArr.map(tt => safeEval(exprR, tt));
+  if(yArr.some(v=>!isFinite(v))){ showStatus('R(t) devolvió valores inválidos. Revisa la expresión (usa Math.sin, Math.cos).'); return; }
+  let dyArr;
+  if(exprD){
+    dyArr = tArr.map(tt => safeEval(exprD, tt));
+    if(dyArr.some(v=>!isFinite(v))){ showStatus("R'(t) devolvió valores inválidos. Revisa la expresión."); return; }
+  } else {
+    dyArr = derivativeNumeric(tArr, yArr);
+  }
+  if(smoothingOn) dyArr = smoothMA(dyArr, 7);
+  const maxAbs = Math.max(...dyArr.map(v=>Math.abs(v)));
+  const threshold = Math.max(1e-8, maxAbs * 0.2);
+  const peaksIdx = findPeaksIdx(dyArr, threshold);
+  lastResult = { tArr, yArr, dyArr, peaksIdx };
+  renderResult(lastResult);
+  btnExportPng.disabled = false;
+  btnExportCsv.disabled = false;
+});
+function renderResult(res){
+  clear();
+  drawAxes();
+  const { tArr, yArr, dyArr, peaksIdx } = res;
+  const tmin = Math.min(...tArr), tmax = Math.max(...tArr);
+  const ymin = Math.min(...yArr), ymax = Math.max(...yArr);
+  const dmin = Math.min(...dyArr), dmax = Math.max(...dyArr);
+  const ptsR = tArr.map((tt,i)=>({ x: mapX(tt,tmin,tmax), y: mapY(yArr[i], ymin, ymax) }));
+  const ptsDy = tArr.map((tt,i)=>({ x: mapX(tt,tmin,tmax), y: mapY(dyArr[i], dmin, dmax) }));
+  drawLinePts(ptsR, '#7c3aed', 2);
+  drawDashedPts(ptsDy, '#ffd166', 1.5);
+  const peakXs = peaksIdx.map(i => mapX(tArr[i], tmin, tmax));
+  drawVLines(peakXs);
+  ctx.fillStyle='white';
+  ctx.font='12px Arial';
+  ctx.fillText('R(t) — carga (morado)', 12, 14);
+  ctx.fillText('dR/dt — derivada (naranja, punteada)', 12, 30);
+  ctx.fillText('R min: ' + ymin.toFixed(2), 12, H - 8);
+  ctx.fillText('R max: ' + ymax.toFixed(2), W - 140, H - 8);
+  ctx.fillText('dR/dt min: ' + dmin.toFixed(3), 12, 42);
+  ctx.fillText('dR/dt max: ' + dmax.toFixed(3), W - 220, 42);
+  document.getElementById('maxLoad').innerText = (Math.max(...yArr)).toFixed(2);
+  document.getElementById('maxDer').innerText = (Math.max(...dyArr.map(v=>Math.abs(v)))).toFixed(3);
+  document.getElementById('peaksNum').innerText = peaksIdx.length;
+}
+btnExportPng.addEventListener('click', ()=>{
+  if(!lastResult){ alert('Primero calcula la gráfica'); return; }
+  if(!canvas){ alert('Canvas no disponible'); return; }
+  const link = document.createElement('a');
+  link.href = canvas.toDataURL('image/png');
+  link.download = 'grafica_derivada.png';
+  link.click();
+});
+btnExportCsv.addEventListener('click', ()=>{
+  if(!lastResult){ alert('Primero calcula la gráfica'); return; }
+  const t = lastResult.tArr;
+  const y = lastResult.yArr;
+  const dy = lastResult.dyArr;
+  let csv = 't,R(t),dRdt\n';
+  for(let i=0;i<t.length;i++){
+    csv += t[i] + ',' + y[i] + ',' + dy[i] + '\n';
+  }
+  const blob = new Blob([csv], {type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'resultados_derivada.csv';
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+});
+function showStatus(msg){
+  const s = document.getElementById('status');
+  s.innerText = msg;
+  s.style.display = 'block';
+}
+clear();
+drawAxes();
+</script>
+</body>
+</html>
+
